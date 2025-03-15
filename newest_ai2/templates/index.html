@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Trading AI</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 20px;
+        }
+        .card {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .header-card {
+            background: linear-gradient(135deg, #172a74, #21a9af);
+            color: white;
+        }
+        .btn-primary {
+            background-color: #21a9af;
+            border-color: #21a9af;
+        }
+        .btn-primary:hover {
+            background-color: #172a74;
+            border-color: #172a74;
+        }
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.6rem;
+        }
+        .card-header {
+            font-weight: bold;
+        }
+        .nav-tabs .nav-link.active {
+            font-weight: bold;
+            border-bottom: 3px solid #21a9af;
+        }
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+        }
+        .metric-card {
+            text-align: center;
+            padding: 15px;
+        }
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+        .metric-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .profit {
+            color: #28a745;
+        }
+        .loss {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="card header-card mb-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="mb-0"><i class="fab fa-bitcoin me-2"></i>Bitcoin Trading AI Platform</h1>
+                        <p class="mb-0">Deep Reinforcement Learning for Cryptocurrency Trading</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button id="refreshDataBtn" class="btn btn-light">
+                            <i class="fas fa-sync-alt me-2"></i>Refresh Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Tabs -->
+        <ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab" aria-controls="dashboard" aria-selected="true">
+                    <i class="fas fa-chart-line me-2"></i>Dashboard
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="train-tab" data-bs-toggle="tab" data-bs-target="#train" type="button" role="tab" aria-controls="train" aria-selected="false">
+                    <i class="fas fa-graduation-cap me-2"></i>Train Model
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="models-tab" data-bs-toggle="tab" data-bs-target="#models" type="button" role="tab" aria-controls="models" aria-selected="false">
+                    <i class="fas fa-robot me-2"></i>My Models
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="help-tab" data-bs-toggle="tab" data-bs-target="#help" type="button" role="tab" aria-controls="help" aria-selected="false">
+                    <i class="fas fa-question-circle me-2"></i>Help
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="mainTabsContent">
+            <!-- Dashboard Tab -->
+            <div class="tab-pane fade show active" id="dashboard" role="tabpanel" aria-labelledby="dashboard-tab">
+                <div class="row">
+                    <!-- Market Overview -->
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-chart-area me-2"></i>Market Overview
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <select id="tickerSelect" class="form-select">
+                                                <option value="BTC-USD" selected>Bitcoin (BTC-USD)</option>
+                                                <option value="ETH-USD">Ethereum (ETH-USD)</option>
+                                                <option value="XRP-USD">Ripple (XRP-USD)</option>
+                                                <option value="LTC-USD">Litecoin (LTC-USD)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="date" id="startDate" class="form-control" value="{{ parameters.start_date }}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="date" id="endDate" class="form-control" value="{{ parameters.end_date }}">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button id="fetchDataBtn" class="btn btn-primary w-100">
+                                                <i class="fas fa-search me-1"></i>Fetch
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="priceChart" style="height: 400px;">
+                                    <div class="loading-spinner">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Performance Metrics -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-tachometer-alt me-2"></i>Best Model Performance
+                            </div>
+                            <div class="card-body">
+                                <div id="bestModelMetrics">
+                                    <p class="text-center text-muted">No trained models yet. Go to the Train tab to create a model.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <i class="fas fa-tasks me-2"></i>Recent Training Tasks
+                            </div>
+                            <div class="card-body">
+                                <div id="recentTasks">
+                                    <p class="text-center text-muted">No training tasks yet.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Train Model Tab -->
+            <div class="tab-pane fade" id="train" role="tabpanel" aria-labelledby="train-tab">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-sliders-h me-2"></i>Training Configuration
+                            </div>
+                            <div class="card-body">
+                                <form id="trainingForm">
+                                    <div class="mb-3">
+                                        <label for="trainTicker" class="form-label">Cryptocurrency</label>
+                                        <select id="trainTicker" name="ticker" class="form-select">
+                                            <option value="BTC-USD" selected>Bitcoin (BTC-USD)</option>
+                                            <option value="ETH-USD">Ethereum (ETH-USD)</option>
+                                            <option value="XRP-USD">Ripple (XRP-USD)</option>
+                                            <option value="LTC-USD">Litecoin (LTC-USD)</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3 row">
+                                        <div class="col">
+                                            <label for="trainStartDate" class="form-label">Start Date</label>
+                                            <input type="date" id="trainStartDate" name="start_date" class="form-control" value="{{ parameters.start_date }}">
+                                        </div>
+                                        <div class="col">
+                                            <label for="trainEndDate" class="form-label">End Date</label>
+                                            <input type="date" id="trainEndDate" name="end_date" class="form-control" value="{{ parameters.end_date }}">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="seqLength" class="form-label">Sequence Length</label>
+                                        <input type="number" id="seqLength" name="seq_length" class="form-control" value="{{ parameters.seq_length }}" min="10" max="200">
+                                        <div class="form-text">Number of historical price points to consider (10-200)</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="initialCash" class="form-label">Initial Cash ($)</label>
+                                        <input type="number" id="initialCash" name="initial_cash" class="form-control" value="{{ parameters.initial_cash }}" min="1000" max="1000000">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="maxPosition" class="form-label">Maximum Position Size</label>
+                                        <input type="number" id="maxPosition" name="max_position" class="form-control" value="{{ parameters.max_position }}" min="0.1" max="1.0" step="0.1">
+                                        <div class="form-text">Maximum percentage of portfolio in Bitcoin (0.1-1.0)</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="transactionFee" class="form-label">Transaction Fee</label>
+                                        <input type="number" id="transactionFee" name="transaction_fee" class="form-control" value="{{ parameters.transaction_fee }}" min="0" max="0.01" step="0.0001">
+                                        <div class="form-text">Transaction fee as a decimal (e.g., 0.001 = 0.1%)</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="numEpisodes" class="form-label">Training Episodes</label>
+                                        <input type="number" id="numEpisodes" name="num_episodes" class="form-control" value="{{ parameters.num_episodes }}" min="5" max="1000">
+                                        <div class="form-text">More episodes = better model but longer training time</div>
+                                    </div>
+                                    
+                                    <div class="mb-3 form-check">
+                                        <input type="checkbox" class="form-check-input" id="continuousAction" name="use_continuous_action_space" value="true">
+                                        <label class="form-check-label" for="continuousAction">Use Continuous Action Space</label>
+                                        <div class="form-text">Enables more granular trading decisions</div>
+                                    </div>
+                                    
+                                    <button type="submit" id="startTrainingBtn" class="btn btn-primary">
+                                        <i class="fas fa-play me-2"></i>Start Training
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-spinner me-2"></i>Training Progress
+                            </div>
+                            <div class="card-body">
+                                <div id="trainingStatus" class="d-none">
+                                    <div class="alert alert-info">
+                                        <h5><i class="fas fa-cog fa-spin me-2"></i>Training in progress</h5>
+                                        <p>Task ID: <span id="currentTaskId">-</span></p>
+                                        <p>Status: <span id="currentTaskStatus">Initializing...</span></p>
+                                        <div class="progress">
+                                            <div id="trainingProgress" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="trainingResults" class="d-none">
+                                    <div class="alert alert-success">
+                                        <h5><i class="fas fa-check-circle me-2"></i>Training completed!</h5>
+                                        <p>You can now view the trained model in the "My Models" tab.</p>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="metric-card card">
+                                                <div class="metric-value" id="resultReturnPct">-</div>
+                                                <div class="metric-label">Return %</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="metric-card card">
+                                                <div class="metric-value" id="resultSharpe">-</div>
+                                                <div class="metric-label">Sharpe Ratio</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mt-3">
+                                        <div class="col-6">
+                                            <div class="metric-card card">
+                                                <div class="metric-value" id="resultVsBuyHold">-</div>
+                                                <div class="metric-label">vs Buy & Hold</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="metric-card card">
+                                                <div class="metric-value" id="resultTrades">-</div>
+                                                <div class="metric-label">Total Trades</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-4" id="resultChart" style="height: 300px;"></div>
+                                </div>
+                                
+                                <div id="trainingInstructions">
+                                    <p class="text-center py-4">
+                                        <i class="fas fa-info-circle fa-3x mb-3 text-muted"></i><br>
+                                        Configure your model parameters on the left and click "Start Training" to begin.<br>
+                                        <small class="text-muted">Training may take several minutes depending on the number of episodes.</small>
+                                    </p>
+                                </div>
+                                
+                                <div id="trainingError" class="d-none">
+                                    <div class="alert alert-danger">
+                                        <h5><i class="fas fa-exclamation-triangle me-2"></i>Training failed</h5>
+                                        <p id="errorMessage">An error occurred during training.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Models Tab -->
+            <div class="tab-pane fade" id="models" role="tabpanel" aria-labelledby="models-tab">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-robot me-2"></i>My Trained Models
+                            </div>
+                            <div class="card-body">
+                                <div id="modelsList">
+                                    <p class="text-center text-muted">No trained models yet.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-chart-pie me-2"></i>Model Performance
+                            </div>
+                            <div class="card-body">
+                                <div id="modelDetailsContainer" class="d-none">
+                                    <ul class="nav nav-tabs mb-3" id="modelDetailTabs" role="tablist">
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active" id="performance-tab" data-bs-toggle="tab" data-bs-target="#performance" type="button" role="tab">
+                                                Performance
+                                            </button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="trades-tab" data-bs-toggle="tab" data-bs-target="#trades" type="button" role="tab">
+                                                Trades
+                                            </button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="metrics-tab" data-bs-toggle="tab" data-bs-target="#metrics" type="button" role="tab">
+                                                Metrics
+                                            </button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="distribution-tab" data-bs-toggle="tab" data-bs-target="#distribution" type="button" role="tab">
+                                                Distribution
+                                            </button>
+                                        </li>
+                                    </ul>
+                                    
+                                    <div class="tab-content" id="modelDetailTabsContent">
+                                        <div class="tab-pane fade show active" id="performance" role="tabpanel">
+                                            <div id="performanceComparisonChart" style="height: 400px;"></div>
+                                        </div>
+                                        <div class="tab-pane fade" id="trades" role="tabpanel">
+                                            <div id="tradingActionsChart" style="height: 400px;"></div>
+                                        </div>
+                                        <div class="tab-pane fade" id="metrics" role="tabpanel">
+                                            <div class="row mb-4">
+                                                <div class="col-md-3">
+                                                    <div class="metric-card card">
+                                                        <div class="metric-value" id="detailReturnPct">-</div>
+                                                        <div class="metric-label">Return %</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="metric-card card">
+                                                        <div class="metric-value" id="detailSharpe">-</div>
+                                                        <div class="metric-label">Sharpe Ratio</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="metric-card card">
+                                                        <div class="metric-value" id="detailDrawdown">-</div>
+                                                        <div class="metric-label">Max Drawdown</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="metric-card card">
+                                                        <div class="metric-value" id="detailTrades">-</div>
+                                                        <div class="metric-label">Total Trades</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <div class="metric-card card">
+                                                        <div class="metric-value" id="detailWinRate">-</div>
+                                                        <div class="metric-label">Win Rate</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="metric-card card">
+                                                        <div class="metric-value" id="detailVsBuyHold">-</div>
+                                                        <div class="metric-label">vs Buy & Hold</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="metric-card card">
+                                                        <div class="metric-value" id="detailInitialValue">-</div>
+                                                        <div class="metric-label">Initial Value</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="metric-card card">
+                                                        <div class="metric-value" id="detailFinalValue">-</div>
+                                                        <div class="metric-label">Final Value</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div id="portfolioGrowthChart" class="mt-4" style="height: 300px;"></div>
+                                        </div>
+                                        <div class="tab-pane fade" id="distribution" role="tabpanel">
+                                            <div id="actionDistributionChart" style="height: 400px;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="noModelSelected" class="py-5 text-center text-muted">
+                                    <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                                    <p>Select a model from the list to view detailed performance.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help Tab -->
+            <div class="tab-pane fade" id="help" role="tabpanel" aria-labelledby="help-tab">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-question-circle me-2"></i>Help & Documentation
+                    </div>
+                    <div class="card-body">
+                        <h4>Getting Started</h4>
+                        <p>Welcome to the Bitcoin Trading AI Platform! This application allows you to train and evaluate AI models for cryptocurrency trading.</p>
+                        
+                        <h5 class="mt-4">How it works</h5>
+                        <ol>
+                            <li><strong>Dashboard:</strong> View market data and your best model performance.</li>
+                            <li><strong>Train Model:</strong> Configure and train a new AI trading model.</li>
+                            <li><strong>My Models:</strong> Explore detailed performance metrics for your trained models.</li>
+                        </ol>
+                        
+                        <h5 class="mt-4">Training Parameters Explained</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Description</th>
+                                        <th>Recommended Values</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Sequence Length</td>
+                                        <td>Number of historical price points used for prediction</td>
+                                        <td>30-90 days</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Initial Cash</td>
+                                        <td>Starting capital for the trading simulation</td>
+                                        <td>$10,000</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Maximum Position</td>
+                                        <td>Maximum percentage of portfolio in cryptocurrency</td>
+                                        <td>0.5 (50%)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Transaction Fee</td>
+                                        <td>Fee per transaction as a decimal</td>
+                                        <td>0.001 (0.1%)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Training Episodes</td>
+                                        <td>Number of full simulations during training</td>
+                                        <td>50-500</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Continuous Action Space</td>
+                                        <td>Enables more granular buying/selling decisions</td>
+                                        <td>Recommended for advanced users</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <h5 class="mt-4">Performance Metrics</h5>
+                        <ul>
+                            <li><strong>Return %:</strong> Overall percentage return on investment</li>
+                            <li><strong>Sharpe Ratio:</strong> Risk-adjusted return (higher is better)</li>
+                            <li><strong>Max Drawdown:</strong> Largest peak-to-trough decline</li>
+                            <li><strong>Win Rate:</strong> Percentage of profitable trades</li>
+                            <li><strong>vs Buy & Hold:</strong> Performance compared to simple buy and hold strategy</li>
+                        </ul>
+                        
+                        <div class="alert alert-info mt-4">
+                            <h5><i class="fas fa-info-circle me-2"></i>Note</h5>
+                            <p>Past performance does not guarantee future results. This platform is for educational and research purposes only.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.14.0.min.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script>
+        $(document).ready(function() {
+            // Fetch available tickers on page load
+            $.get('/api/available_tickers', function(data) {
+                const tickerSelect = $('#tickerSelect');
+                const trainTickerSelect = $('#trainTicker');
+                
+                tickerSelect.empty();
+                trainTickerSelect.empty();
+                
+                data.tickers.forEach(ticker => {
+                    tickerSelect.append(`<option value="${ticker}">${ticker}</option>`);
+                    trainTickerSelect.append(`<option value="${ticker}">${ticker}</option>`);
+                });
+                
+                // Set default to BTC-USD
+                tickerSelect.val('BTC-USD');
+                trainTickerSelect.val('BTC-USD');
+                
+                // Fetch initial price data
+                fetchPriceData();
+            });
+            
+            // Fetch price data button click
+            $('#fetchDataBtn').click(function() {
+                fetchPriceData();
+            });
+            
+            // Refresh data button click
+            $('#refreshDataBtn').click(function() {
+                fetchPriceData();
+                loadModels();
+            });
+            
+            // Training form submission
+            $('#trainingForm').submit(function(e) {
+                e.preventDefault();
+                startTraining();
+            });
+            
+            // Initial loading of models
+            loadModels();
+            
+            // Set up polling for task status checks
+            setInterval(function() {
+                const taskId = $('#currentTaskId').text();
+                if (taskId && taskId !== '-') {
+                    checkTaskStatus(taskId);
+                }
+            }, 5000); // Check every 5 seconds
+        });
+        
+        // Function to fetch and display price data
+        function fetchPriceData() {
+            const ticker = $('#tickerSelect').val();
+            const startDate = $('#startDate').val();
+            const endDate = $('#endDate').val();
+            
+            // Show loading spinner
+            $('#priceChart').html(`
+                <div class="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `);
+            
+            // Fetch data from API
+            $.ajax({
+                url: '/api/fetch_price_data',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    ticker: ticker,
+                    start_date: startDate,
+                    end_date: endDate
+                }),
+                success: function(response) {
+                    if (response.status === 'success') {
+                        // Render the plot
+                        var plot = JSON.parse(response.plot);
+                        Plotly.newPlot('priceChart', plot.data, plot.layout);
+                    } else {
+                        $('#priceChart').html(`
+                            <div class="alert alert-danger">
+                                Error: ${response.message}
+                            </div>
+                        `);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#priceChart').html(`
+                        <div class="alert alert-danger">
+                            Error fetching data: ${error}
+                        </div>
+                    `);
+                }
+            });
+        }
+        
+        // Function to start model training
+        function startTraining() {
+            // Get form data
+            const formData = {
+                ticker: $('#trainTicker').val(),
+                start_date: $('#trainStartDate').val(),
+                end_date: $('#trainEndDate').val(),
+                seq_length: parseInt($('#seqLength').val()),
+                initial_cash: parseFloat($('#initialCash').val()),
+                max_position: parseFloat($('#maxPosition').val()),
+                transaction_fee: parseFloat($('#transactionFee').val()),
+                num_episodes: parseInt($('#numEpisodes').val()),
+                use_continuous_action_space: $('#continuousAction').is(':checked')
+            };
+            
+            // Show training status
+            $('#trainingInstructions').addClass('d-none');
+            $('#trainingResults').addClass('d-none');
+            $('#trainingError').addClass('d-none');
+            $('#trainingStatus').removeClass('d-none');
+            $('#currentTaskStatus').text('Initializing...');
+            $('#trainingProgress').css('width', '5%');
+            
+            // Disable form during training
+            $('#startTrainingBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Training...');
+            
+            // Send training request
+            $.ajax({
+                url: '/api/train',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#currentTaskId').text(response.task_id);
+                        $('#currentTaskStatus').text('Training in progress');
+                        $('#trainingProgress').css('width', '10%');
+                        
+                        // Start checking task status
+                        setTimeout(function() {
+                            checkTaskStatus(response.task_id);
+                        }, 2000);
+                    } else {
+                        showTrainingError(response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    showTrainingError(error);
+                }
+            });
+        }
+        
+        // Function to check training task status
+        function checkTaskStatus(taskId) {
+            $.get(`/api/task_status/${taskId}`, function(response) {
+                const status = response.status;
+                
+                if (status === 'pending') {
+                    $('#currentTaskStatus').text('Pending - waiting for resources');
+                    $('#trainingProgress').css('width', '10%');
+                } else if (status === 'running') {
+                    $('#currentTaskStatus').text('Training in progress');
+                    $('#trainingProgress').css('width', '50%');
+                } else if (status === 'completed') {
+                    $('#currentTaskStatus').text('Completed');
+                    $('#trainingProgress').css('width', '100%');
+                    
+                    // Enable form again
+                    $('#startTrainingBtn').prop('disabled', false).html('<i class="fas fa-play me-2"></i>Start Training');
+                    
+                    // Show results
+                    setTimeout(function() {
+                        $('#trainingStatus').addClass('d-none');
+                        $('#trainingResults').removeClass('d-none');
+                        
+                        // Display metrics
+                        const results = response.results.simulation_results;
+                        $('#resultReturnPct').text(results.gain_pct.toFixed(2) + '%')
+                            .removeClass('profit loss')
+                            .addClass(results.gain_pct >= 0 ? 'profit' : 'loss');
+                        $('#resultSharpe').text(results.sharpe_ratio.toFixed(2));
+                        $('#resultVsBuyHold').text(results.vs_buyhold_pct.toFixed(2) + '%')
+                            .removeClass('profit loss')
+                            .addClass(results.vs_buyhold_pct >= 0 ? 'profit' : 'loss');
+                        $('#resultTrades').text(results.total_trades);
+                        
+                        // Display performance chart
+                        const performancePlot = JSON.parse(response.results.performance_plots.performance_comparison);
+                        Plotly.newPlot('resultChart', performancePlot.data, performancePlot.layout);
+                        
+                        // Refresh models list
+                        loadModels();
+                    }, 1000);
+                } else if (status === 'failed') {
+                    showTrainingError(response.error || 'Unknown error occurred');
+                }
+            });
+        }
+        
+        // Function to show training error
+        function showTrainingError(message) {
+            $('#trainingStatus').addClass('d-none');
+            $('#trainingResults').addClass('d-none');
+            $('#trainingError').removeClass('d-none');
+            $('#errorMessage').text(message);
+            $('#startTrainingBtn').prop('disabled', false).html('<i class="fas fa-play me-2"></i>Start Training');
+        }
+        
+        // Function to load trained models
+        function loadModels() {
+            $.get('/api/models', function(response) {
+                if (response.status === 'success') {
+                    const models = response.models;
+                    
+                    if (models.length > 0) {
+                        // Update models list
+                        let modelsHtml = '<div class="list-group">';
+                        models.forEach(model => {
+                            const date = new Date(model.created_at).toLocaleString();
+                            modelsHtml += `
+                                <a href="#" class="list-group-item list-group-item-action model-item" data-task-id="${model.task_id}">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">${model.parameters.ticker}</h6>
+                                        <small>${date}</small>
+                                    </div>
+                                    <p class="mb-1">Return: <span class="${model.results_summary.gain_pct >= 0 ? 'text-success' : 'text-danger'}">${model.results_summary.gain_pct.toFixed(2)}%</span></p>
+                                    <small>Episodes: ${model.parameters.num_episodes} | Trades: ${model.results_summary.total_trades}</small>
+                                </a>
+                            `;
+                        });
+                        modelsHtml += '</div>';
+                        $('#modelsList').html(modelsHtml);
+                        
+                        // Add click event for model items
+                        $('.model-item').click(function(e) {
+                            e.preventDefault();
+                            const taskId = $(this).data('task-id');
+                            loadModelDetails(taskId);
+                            
+                            // Highlight selected model
+                            $('.model-item').removeClass('active');
+                            $(this).addClass('active');
+                        });
+                        
+                        // Update best model metrics on dashboard
+                        const bestModel = models.reduce((best, current) => {
+                            return current.results_summary.gain_pct > best.results_summary.gain_pct ? current : best;
+                        }, models[0]);
+                        
+                        let metricsHtml = `
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="metric-card">
+                                        <div class="metric-value ${bestModel.results_summary.gain_pct >= 0 ? 'profit' : 'loss'}">
+                                            ${bestModel.results_summary.gain_pct.toFixed(2)}%
+                                        </div>
+                                        <div class="metric-label">Return</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="metric-card">
+                                        <div class="metric-value">
+                                            $${bestModel.results_summary.final_value.toFixed(2)}
+                                        </div>
+                                        <div class="metric-label">Final Portfolio</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <hr>
+                            <p><strong>Model Details:</strong></p>
+                            <p>
+                                <i class="fas fa-chart-line me-2"></i>${bestModel.parameters.ticker}<br>
+                                <i class="fas fa-calendar me-2"></i>${bestModel.parameters.start_date} to ${bestModel.parameters.end_date}<br>
+                                <i class="fas fa-graduation-cap me-2"></i>${bestModel.parameters.num_episodes} training episodes
+                            </p>
+                            <button class="btn btn-sm btn-primary view-model-btn" data-task-id="${bestModel.task_id}">
+                                <i class="fas fa-eye me-1"></i>View Details
+                            </button>
+                        `;
+                        $('#bestModelMetrics').html(metricsHtml);
+                        
+                        // Add click event for View Details button
+                        $('.view-model-btn').click(function() {
+                            const taskId = $(this).data('task-id');
+                            // Switch to Models tab
+                            $('#models-tab').tab('show');
+                            // After a brief delay, load the model details
+                            setTimeout(function() {
+                                loadModelDetails(taskId);
+                                // Highlight the selected model in the list
+                                $('.model-item').removeClass('active');
+                                $(`.model-item[data-task-id="${taskId}"]`).addClass('active');
+                            }, 300);
+                        });
+                    } else {
+                        $('#modelsList').html('<p class="text-center text-muted">No trained models yet.</p>');
+                        $('#bestModelMetrics').html('<p class="text-center text-muted">No trained models yet. Go to the Train tab to create a model.</p>');
+                    }
+                    
+                    // Update recent tasks
+                    let tasksHtml = '';
+                    const recentTasks = Object.entries(models)
+                        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                        .slice(0, 3);
+                    
+                    if (recentTasks.length > 0) {
+                        tasksHtml = '<div class="list-group">';
+                        recentTasks.forEach(task => {
+                            const model = task[1];
+                            const date = new Date(model.created_at).toLocaleString();
+                            tasksHtml += `
+                                <a href="#" class="list-group-item list-group-item-action small py-2">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <span>${model.parameters.ticker}</span>
+                                        <span class="badge bg-success">Completed</span>
+                                    </div>
+                                    <small>${date}</small>
+                                </a>
+                            `;
+                        });
+                        tasksHtml += '</div>';
+                    } else {
+                        tasksHtml = '<p class="text-center text-muted">No training tasks yet.</p>';
+                    }
+                    $('#recentTasks').html(tasksHtml);
+                }
+            });
+        }
+        
+        // Function to load model details
+        function loadModelDetails(taskId) {
+            $.get(`/api/model_details/${taskId}`, function(response) {
+                if (response.status === 'success') {
+                    // Show model details container
+                    $('#noModelSelected').addClass('d-none');
+                    $('#modelDetailsContainer').removeClass('d-none');
+                    
+                    const results = response.results;
+                    const metrics = results.simulation_results;
+                    
+                    // Fill in metrics
+                    $('#detailReturnPct').text(metrics.gain_pct.toFixed(2) + '%')
+                        .removeClass('profit loss')
+                        .addClass(metrics.gain_pct >= 0 ? 'profit' : 'loss');
+                    $('#detailSharpe').text(metrics.sharpe_ratio.toFixed(2));
+                    $('#detailDrawdown').text((metrics.max_drawdown * 100).toFixed(2) + '%');
+                    $('#detailTrades').text(metrics.total_trades);
+                    $('#detailWinRate').text((metrics.win_rate * 100).toFixed(2) + '%');
+                    $('#detailVsBuyHold').text(metrics.vs_buyhold_pct.toFixed(2) + '%')
+                        .removeClass('profit loss')
+                        .addClass(metrics.vs_buyhold_pct >= 0 ? 'profit' : 'loss');
+                    $('#detailInitialValue').text('$' + metrics.initial_value.toFixed(2));
+                    $('#detailFinalValue').text('$' + metrics.final_value.toFixed(2));
+                    
+                    // Load charts from plotly JSON
+                    const plots = results.performance_plots;
+                    
+                    // Performance comparison
+                    const performancePlot = JSON.parse(plots.performance_comparison);
+                    Plotly.newPlot('performanceComparisonChart', performancePlot.data, performancePlot.layout);
+                    
+                    // Trading actions
+                    const tradingActionsPlot = JSON.parse(plots.trading_actions);
+                    Plotly.newPlot('tradingActionsChart', tradingActionsPlot.data, tradingActionsPlot.layout);
+                    
+                    // Action distribution
+                    const actionDistributionPlot = JSON.parse(plots.action_distribution);
+                    Plotly.newPlot('actionDistributionChart', actionDistributionPlot.data, actionDistributionPlot.layout);
+                    
+                    // Portfolio growth
+                    const portfolioGrowthPlot = JSON.parse(plots.portfolio_growth);
+                    Plotly.newPlot('portfolioGrowthChart', portfolioGrowthPlot.data, portfolioGrowthPlot.layout);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
