@@ -1,2 +1,3 @@
-# ai_analysis_trading_4thversion
-Updated just able to function in vs_studio, still finding ways to debugs at front end.
+# ai_analysis_trading_continue_improvement
+
+keep on updating newest improvement implement on ai_trading_analysis
